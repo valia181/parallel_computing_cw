@@ -102,4 +102,17 @@ class HashTableTest
         assertEquals(1, smallTable.search("word0").get("doc1"));
         assertEquals(1, smallTable.search("word499").get("doc1"));
     }
+
+    @Test
+    void checkAddingFreq()
+    {
+        for (int i = 0; i < 500; i++)
+        {
+            table.addWord("word", "doc1", 1);
+        }
+
+        Map <String, Integer> result = table.search("word");
+
+        assertEquals(500, result.get("doc1"));
+    }
 }

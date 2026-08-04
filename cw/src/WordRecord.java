@@ -1,7 +1,8 @@
 import java.util.HashMap;
 import java.util.Map;
 
-public class WordRecord {
+public class WordRecord
+{
     final String word;
     Map<String, Integer> wordFreqInDocs;
 
@@ -21,6 +22,6 @@ public class WordRecord {
         {
             throw new IllegalArgumentException("Invalid input");
         }
-        wordFreqInDocs.put(docId, freq);
+        wordFreqInDocs.merge(docId, freq, Integer::sum);
     }
 }
