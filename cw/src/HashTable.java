@@ -2,7 +2,8 @@ import java.util.Collections;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicReferenceArray;
 
-public class HashTable {
+public class HashTable
+{
     private final int size;
     private final AtomicReferenceArray<Node> table;
 
