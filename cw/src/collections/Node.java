@@ -1,3 +1,5 @@
+package collections;
+
 public class Node
 {
     public final String key;

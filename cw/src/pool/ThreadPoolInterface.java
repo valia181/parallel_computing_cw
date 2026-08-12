@@ -1,3 +1,5 @@
+package pool;
+
 public interface ThreadPoolInterface
 {
     void runTask (Runnable task);

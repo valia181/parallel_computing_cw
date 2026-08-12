@@ -1,3 +1,6 @@
+package pool;
+
+import collections.HashTable;
 import org.junit.Test;
 import org.junit.jupiter.api.Timeout;
 

@@ -1,3 +1,5 @@
+package pool;
+
 import java.util.LinkedList;
 
 public class WorkerThreadPool implements ThreadPoolInterface
@@ -6,7 +8,7 @@ public class WorkerThreadPool implements ThreadPoolInterface
     private final Thread[] workers;
     private volatile boolean running;
 
-    WorkerThreadPool(int numThreads)
+    public WorkerThreadPool(int numThreads)
     {
         this.workers = new Thread[numThreads];
         this.running = true;
