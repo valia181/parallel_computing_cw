@@ -8,9 +8,7 @@ import pool.WorkerThreadPool;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class Indexing
@@ -76,6 +74,63 @@ public class Indexing
         long end = System.currentTimeMillis() - start;
         IndexResponse result = new IndexResponse("ok", docCounts.get(), end);
         return result;
+    }
+
+    public record SearchItem (@JsonProperty("doc_id") String docId, @JsonProperty("score") int score, @JsonProperty("snippet") String snippet) {}
+    public record SearchResult (@JsonProperty("results") List <SearchItem> results, @JsonProperty("time_ms") long time){}
+
+    public SearchResult search (List<String> words, String mode)
+    {
+        long start = System.currentTimeMillis();
+
+        if (words == null || mode == null || words.isEmpty() || mode.isEmpty())
+        {
+            return new SearchResult(Collections.emptyList(), 0);
+        }
+
+        if (mode.equals("ollama")) // TODO:OLLAMA
+        {
+            System.out.println("This is ollama mode ....");
+        }
+
+        Map<String, Integer> scoreDocs = calculateScore(words);
+
+        List<SearchItem> resultList = new ArrayList<>();
+
+        for (Map.Entry<String, Integer> scoreDoc : scoreDocs.entrySet())
+        {
+            String docId = scoreDoc.getKey();
+            int score = scoreDoc.getValue();
+            String snippet = "..."; // TODO:SNIPPET
+
+            SearchItem res = new SearchItem(docId, score, snippet);
+            resultList.add(res);
+        }
+
+        resultList.sort(Comparator.comparingInt(SearchItem::score).reversed());
+
+        long end = System.currentTimeMillis() - start;
+
+        SearchResult results = new SearchResult(resultList, end);
+
+        return results;
+    }
+
+    private Map<String, Integer> calculateScore (List<String> words)
+    {
+        Map<String, Integer> scores = new HashMap<>();
+
+        for (String word : words)
+        {
+            Map<String, Integer> freq = table.search(word);
+
+            for (Map.Entry<String, Integer> set : freq.entrySet())
+            {
+                scores.merge(set.getKey(), set.getValue(), Integer::sum);
+            }
+        }
+
+        return scores;
     }
 
     public HashTable getTable()

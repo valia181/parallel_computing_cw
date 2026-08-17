@@ -5,6 +5,7 @@ import org.junit.jupiter.api.io.TempDir;
 
 import java.io.IOException;
 import java.nio.file.*;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Stream;
@@ -115,5 +116,87 @@ class IndexingTest
         assertEquals(2, result.documentsIndexed());
         assertFalse(indexing.getTable().search("cat").isEmpty());
         assertFalse(indexing.getTable().search("dog").isEmpty());
+    }
+
+    @Test
+    void searchNullWords()
+    {
+        Indexing indexing = new Indexing(16);
+        Indexing.SearchResult result = indexing.search(null, "keyword");
+
+        assertTrue(result.results().isEmpty());
+    }
+
+    @Test
+    void searchNullMode(@TempDir Path dir) throws IOException
+    {
+        Files.writeString(dir.resolve("doc1.txt"), "cat dog");
+        Indexing indexing = new Indexing(16);
+        indexing.buildIndex(List.of(dir.resolve("doc1.txt")), 1);
+
+        Indexing.SearchResult result = indexing.search(List.of("cat"), null);
+
+        assertTrue(result.results().isEmpty());
+    }
+
+    @Test
+    void searchEmptyWordsList()
+    {
+        Indexing indexing = new Indexing(16);
+        Indexing.SearchResult result = indexing.search(Collections.emptyList(), "keyword");
+
+        assertTrue(result.results().isEmpty());
+    }
+
+    @Test
+    void searchTermNotFound(@TempDir Path dir) throws IOException
+    {
+        Files.writeString(dir.resolve("doc1.txt"), "cat dog");
+        Indexing indexing = new Indexing(16);
+        indexing.buildIndex(List.of(dir.resolve("doc1.txt")), 1);
+
+        Indexing.SearchResult result = indexing.search(List.of("elephant"), "keyword");
+
+        assertTrue(result.results().isEmpty());
+    }
+
+    @Test
+    void searchSingleTermInSingleDocument(@TempDir Path dir) throws IOException
+    {
+        Files.writeString(dir.resolve("doc1.txt"), "cat cat cat dog");
+        Indexing indexing = new Indexing(16);
+        indexing.buildIndex(List.of(dir.resolve("doc1.txt")), 1);
+
+        Indexing.SearchResult result = indexing.search(List.of("cat"), "keyword");
+
+        assertEquals(1, result.results().size());
+        assertEquals("doc1.txt", result.results().get(0).docId());
+        assertEquals(3, result.results().get(0).score());
+    }
+
+    @Test
+    void searchRanksDocuments(@TempDir Path dir) throws IOException
+    {
+        Files.writeString(dir.resolve("doc1.txt"), "dog dog dog");
+        Files.writeString(dir.resolve("doc2.txt"), "cat dog cat dog");
+        Files.writeString(dir.resolve("doc3.txt"), "cat");
+
+        List<Path> files = List.of(dir.resolve("doc1.txt"), dir.resolve("doc2.txt"), dir.resolve("doc3.txt"));
+        Indexing indexing = new Indexing(16);
+        indexing.buildIndex(files, 2);
+
+        Indexing.SearchResult result = indexing.search(List.of("cat", "dog"), "keyword");
+
+        assertEquals(3, result.results().size());
+
+        var results = result.results();
+        assertEquals("doc2.txt", results.get(0).docId());
+        assertEquals(4, results.get(0).score());
+
+        assertEquals("doc1.txt", results.get(1).docId());
+        assertEquals(3, results.get(1).score());
+
+        assertEquals("doc3.txt", results.get(2).docId());
+        assertEquals(1, results.get(2).score());
     }
 }

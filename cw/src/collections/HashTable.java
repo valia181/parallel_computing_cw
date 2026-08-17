@@ -1,6 +1,7 @@
 package collections;
 
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicReferenceArray;
 
@@ -82,7 +83,7 @@ public class HashTable
             nodeCurr = nodeCurr.nextNode;
         }
 
-        return Collections.emptyMap();
+        return new HashMap<>();
     }
 
     private void checkWord(String word)
