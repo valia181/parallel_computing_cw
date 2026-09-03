@@ -4,7 +4,7 @@ import collections.HashTable;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import pool.ThreadPoolInterface;
 import pool.WorkerThreadPool;
-
+import llm.OllamaWorker;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -15,8 +15,14 @@ public class Indexing
 {
     private final HashTable table;
     public record IndexResponse(String status, @JsonProperty("documents_indexed") int documentsIndexed, @JsonProperty("time_ms") long timeMs) {}
+    private final OllamaWorker ollama;
 
-    public Indexing(int size)
+    public Indexing (int size)
+    {
+        this(size, null);
+    }
+
+    public Indexing(int size, OllamaWorker ollama)
     {
         if (size < 1)
         {
@@ -24,6 +30,7 @@ public class Indexing
         }
 
         table = new HashTable(size);
+        this.ollama = ollama;
     }
 
     public IndexResponse buildIndex(List<Path> listOfDocs, int threadsCount)
@@ -81,19 +88,22 @@ public class Indexing
 
     public SearchResult search (List<String> words, String mode)
     {
-        long start = System.currentTimeMillis();
-
         if (words == null || mode == null || words.isEmpty() || mode.isEmpty())
         {
             return new SearchResult(Collections.emptyList(), 0);
         }
 
-        if (mode.equals("ollama")) // TODO:OLLAMA
+        long start = System.currentTimeMillis();
+
+        List<String> searchWords = new ArrayList<>(words);
+        if ("ollama".equals(mode) && ollama != null)
         {
-            System.out.println("This is ollama mode ....");
+            System.out.println("Synonyms from Ollama...");
+            List<String> synonyms = ollama.getWords(searchWords);
+            searchWords.addAll(synonyms);
         }
 
-        Map<String, Integer> scoreDocs = calculateScore(words);
+        Map<String, Integer> scoreDocs = calculateScore(searchWords);
 
         List<SearchItem> resultList = new ArrayList<>();
 
