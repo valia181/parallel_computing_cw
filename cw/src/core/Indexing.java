@@ -15,6 +15,17 @@ public class Indexing
 {
     private final HashTable table;
     public record IndexResponse(String status, @JsonProperty("documents_indexed") int documentsIndexed, @JsonProperty("time_ms") long timeMs) {}
+
+    private int totalDocumentsIndexed = 0;
+    private long totalIndexTimeMs = 0;
+    private int totalThreadsUsed = 0;
+
+    public record StatsResponse(
+            @JsonProperty("documents") int documents,
+            @JsonProperty("index_build_time_ms") long indexBuildTimeMs,
+            @JsonProperty("threads_used") int threadsUsed
+    ) {}
+
     private final OllamaWorker ollama;
 
     public Indexing (int size)
@@ -39,6 +50,8 @@ public class Indexing
         {
             throw new IllegalArgumentException("Invalid thread count");
         }
+
+        table.clear();
 
         long start = System.currentTimeMillis();
         ThreadPoolInterface threadPool = new WorkerThreadPool(threadsCount);
@@ -79,8 +92,18 @@ public class Indexing
         threadPool.waitTermination();
 
         long end = System.currentTimeMillis() - start;
+
+        this.totalDocumentsIndexed = docCounts.get();
+        this.totalIndexTimeMs = end;
+        this.totalThreadsUsed = threadsCount;
+
         IndexResponse result = new IndexResponse("ok", docCounts.get(), end);
         return result;
+    }
+
+    public StatsResponse getStats()
+    {
+        return new StatsResponse(totalDocumentsIndexed, totalIndexTimeMs, totalThreadsUsed);
     }
 
     public record SearchItem (@JsonProperty("doc_id") String docId, @JsonProperty("score") int score, @JsonProperty("snippet") String snippet) {}

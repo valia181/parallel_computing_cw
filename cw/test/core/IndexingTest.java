@@ -199,4 +199,39 @@ class IndexingTest
         assertEquals("doc3.txt", results.get(2).docId());
         assertEquals(1, results.get(2).score());
     }
+
+    @Test
+    void initialStatsAreZero()
+    {
+        Indexing indexing = new Indexing(16);
+        Indexing.StatsResponse stats = indexing.getStats();
+
+        assertEquals(0, stats.documents());
+        assertEquals(0, stats.indexBuildTimeMs());
+        assertEquals(0, stats.threadsUsed());
+    }
+
+    @Test
+    void statsAreUpdatedAfterIndexing(@TempDir Path dir) throws IOException
+    {
+        Files.writeString(dir.resolve("doc1.txt"), "test word");
+        Files.writeString(dir.resolve("doc2.txt"), "another word");
+        Files.writeString(dir.resolve("doc3.txt"), "final word");
+
+        List<Path> files;
+        try (Stream<Path> list = Files.list(dir))
+        {
+            files = list.filter(Files::isRegularFile).toList();
+        }
+
+        Indexing indexing = new Indexing(16);
+        int threads = 3;
+
+        indexing.buildIndex(files, threads);
+        Indexing.StatsResponse stats = indexing.getStats();
+
+        assertEquals(3, stats.documents());
+        assertTrue(stats.indexBuildTimeMs() >= 0);
+        assertEquals(threads, stats.threadsUsed());
+    }
 }

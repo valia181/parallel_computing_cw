@@ -93,4 +93,12 @@ public class HashTable
             throw new IllegalArgumentException("Empty word");
         }
     }
+
+    public void clear()
+    {
+        for (int i = 0; i < size; i++)
+        {
+            table.set(i, null);
+        }
+    }
 }
