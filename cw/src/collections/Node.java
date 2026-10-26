@@ -1,20 +1,26 @@
 package collections;
 
+import java.util.Map;
+
 public class Node
 {
     public final String key;
-    WordRecord record;
+    final WordRecord record;
     volatile Node nextNode;
 
-    public Node (String word)
+    public Node(String word)
     {
-        key = word;
-        record = new WordRecord(word);
-        nextNode = null;
+        this.key = word;
+        this.record = new WordRecord(word);
     }
 
-    public void addFreq (String docId, int freq)
+    public void addFreq(String docId, int freq)
     {
         record.addWordFreq(docId, freq);
+    }
+
+    public Map<String, Integer> getFrequencies()
+    {
+        return record.getFrequencies();
     }
 }
