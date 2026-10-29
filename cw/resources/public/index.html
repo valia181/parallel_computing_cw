@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Search Engine</title>
+    <style>
+        :root{color-scheme:light dark;--bg:#f5f6fb;--card:#fff;--text:#1b1f2a;--muted:#6b7280;--line:#e4e7ee;--accent:#4f46e5;--ok:#16a34a;--err:#dc2626;--orig:#fde68a;--syn:#bfdbfe;--shadow:0 1px 3px rgba(20,24,40,.08)}
+        @media (prefers-color-scheme:dark){:root{--bg:#0e1017;--card:#171a23;--text:#e7e9f0;--muted:#98a0b3;--line:#272c3a;--accent:#8b93ff;--orig:#6b5a14;--syn:#1f3b63;--shadow:none}}
+        *{box-sizing:border-box}
+        body{margin:0;background:var(--bg);color:var(--text);font:15px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+        header{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:14px 24px;border-bottom:1px solid var(--line);background:var(--card)}
+        h1{font-size:18px;margin:0;display:flex;gap:10px;align-items:center}
+        h1 small{color:var(--muted);font-weight:400;font-size:13px}
+        .pills{display:flex;gap:8px;flex-wrap:wrap}
+        .pill{display:inline-flex;align-items:center;gap:6px;padding:3px 10px;border:1px solid var(--line);border-radius:999px;font-size:12.5px;color:var(--muted)}
+        .dot{width:8px;height:8px;border-radius:50%;background:var(--muted)}
+        .pill.ok .dot{background:var(--ok)}.pill.bad .dot{background:var(--err)}
+        main{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:20px;max-width:1160px;margin:22px auto;padding:0 20px}
+        @media (max-width:880px){main{grid-template-columns:1fr}}
+        .card{background:var(--card);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);padding:18px}
+        .card+.card{margin-top:16px}
+        h2{font-size:12.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin:0 0 12px}
+        form{display:flex;gap:10px}
+        input[type=text],input[type=number]{flex:1;min-width:0;padding:11px 14px;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:inherit;font:inherit}
+        input:focus{outline:2px solid var(--accent);outline-offset:-1px}
+        button{padding:10px 18px;border:0;border-radius:10px;background:var(--accent);color:#fff;font:inherit;font-weight:600;cursor:pointer}
+        button:disabled{opacity:.55;cursor:default}
+        button.ghost{background:transparent;color:var(--accent);border:1px solid var(--line)}
+        .hist{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
+        .chip{padding:2px 10px;border-radius:999px;border:1px solid var(--line);font-size:13px;background:transparent;color:var(--muted);cursor:pointer;font-weight:400}
+        .chip.orig{background:var(--orig);color:inherit;border-color:transparent;cursor:default}
+        .chip.syn{background:var(--syn);color:inherit;border-color:transparent;cursor:default}
+        .note{margin-top:10px;color:var(--err);font-size:13.5px}
+        .pipe{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+        @media (max-width:560px){.pipe{grid-template-columns:1fr}}
+        .step{display:flex;gap:10px;align-items:flex-start;padding:10px 12px;border:1px solid var(--line);border-radius:10px;opacity:.55;transition:.2s}
+        .step .ic{flex:none;width:26px;height:26px;border-radius:50%;display:grid;place-items:center;font-size:13px;font-weight:700;border:2px solid var(--line)}
+        .step b{display:block;font-size:14px}.step small{color:var(--muted);font-size:12px}.step .t{display:block;font-size:12.5px;color:var(--accent);min-height:18px}
+        .step.run{opacity:1;border-color:var(--accent)}
+        .step.run .ic{border-color:var(--accent) var(--accent) var(--accent) transparent;animation:spin .8s linear infinite;font-size:0}
+        .step.done{opacity:1}.step.done .ic{background:var(--ok);border-color:var(--ok);color:#fff}
+        .step.err{opacity:1;border-color:var(--err)}.step.err .ic{background:var(--err);border-color:var(--err);color:#fff}
+        @keyframes spin{to{transform:rotate(360deg)}}
+        .exp{margin-top:14px;display:none}.exp.on{display:block}
+        .exp .hist{margin:6px 0 0}
+        .meta{display:flex;justify-content:space-between;color:var(--muted);font-size:13px;margin-bottom:10px}
+        .res{padding:12px 0;border-top:1px solid var(--line)}.res:first-of-type{border-top:0}
+        .res .top{display:flex;gap:10px;align-items:center}
+        .rank{color:var(--muted);width:26px;text-align:right;font-variant-numeric:tabular-nums}
+        .doc{font-weight:600;word-break:break-all;flex:1}
+        .score{font-variant-numeric:tabular-nums;color:var(--accent);font-weight:600}
+        .bar{height:4px;border-radius:2px;background:var(--line);margin:6px 0 6px 36px}.bar i{display:block;height:100%;border-radius:2px;background:var(--accent)}
+        .snip{margin-left:36px;color:var(--muted);font-size:14px;word-break:break-word}
+        mark{border-radius:3px;padding:0 2px;color:inherit}mark.orig{background:var(--orig)}mark.syn{background:var(--syn)}
+        .empty{text-align:center;color:var(--muted);padding:26px 0}
+        .kv{display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px dashed var(--line)}.kv span:first-child{color:var(--muted)}
+        .row{display:flex;gap:8px;margin-top:14px}.row label{align-self:center;color:var(--muted);font-size:13px}.row input{width:80px;flex:none}
+        .msg{font-size:13px;margin-top:10px;color:var(--muted)}.msg.err{color:var(--err)}.msg.ok{color:var(--ok)}
+    </style>
+</head>
+<body>
+<header>
+    <h1>🔎 Search Engine <small></small></h1>
+    <div class="pills">
+        <span class="pill" id="pWs"><i class="dot"></i>WebSocket</span>
+        <span class="pill" id="pSrv"><i class="dot"></i>Сервер</span>
+        <span class="pill" id="pOll"><i class="dot"></i>Ollama</span>
+    </div>
+</header>
+<main>
+    <section>
+        <div class="card">
+            <form id="form" autocomplete="off">
+                <input type="text" id="q" placeholder="Введіть запит англійською" aria-label="Пошуковий запит" autofocus>
+                <button id="go">Шукати</button>
+            </form>
+            <div class="note" id="note" role="alert"></div>
+            <div class="hist" id="hist"></div>
+        </div>
+        <div class="card">
+            <h2>Пайплайн пошуку</h2>
+            <div class="pipe" aria-live="polite">
+                <div class="step" id="s-expansion"><span class="ic">1</span><div><b>Розширення запиту</b><small>Ollama</small><span class="t"></span></div></div>
+                <div class="step" id="s-search"><span class="ic">2</span><div><b>Пошук за словами</b><small></small><span class="t"></span></div></div>
+                <div class="step" id="s-done"><span class="ic">3</span><div><b>Готово</b><small></small><span class="t"></span></div></div>
+            </div>
+            <div class="exp" id="exp">
+                <small class="msg">Терміни запиту та синоніми від LLM:</small>
+                <div class="hist" id="chips"></div>
+            </div>
+        </div>
+        <div class="card">
+            <h2>Результати</h2>
+            <div id="results"><div class="empty">Тут з’являться результати пошуку.</div></div>
+        </div>
+    </section>
+    <aside>
+        <div class="card">
+            <h2>Індекс</h2>
+            <div class="kv"><span>Документів</span><b id="stDocs">—</b></div>
+            <div class="kv"><span>Час побудови</span><b id="stTime">—</b></div>
+            <div class="kv"><span>Потоків</span><b id="stThr">—</b></div>
+            <div class="row">
+                <label for="thr">Потоки</label>
+                <input type="number" id="thr" min="1" max="256" value="4">
+                <button id="build" class="ghost" style="flex:1">Побудувати</button>
+            </div>
+            <div class="msg" id="bmsg"></div>
+        </div>
+    </aside>
+</main>
+<script>
+    "use strict";
+    const $ = s => document.querySelector(s);
+    const esc = s => s.replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+    const STEPS = ["expansion", "search", "done"];
+    let ws, running = false, t0 = 0, watchdog = 0, ctx = {terms: [], syn: []};
+
+    function pill(id, ok) { const p = $(id); p.classList.toggle("ok", ok === true); p.classList.toggle("bad", ok === false); }
+    function setStep(name, state, text) {
+        const el = $("#s-" + name);
+        el.className = "step" + (state ? " " + state : "");
+        const ic = el.querySelector(".ic");
+        ic.textContent = state === "done" ? "✓" : state === "err" ? "✕" : String(STEPS.indexOf(name) + 1);
+        el.querySelector(".t").textContent = text || "";
+    }
+    function resetSteps() { STEPS.forEach(s => setStep(s, "", "")); $("#exp").classList.remove("on"); }
+    function note(msg) { $("#note").textContent = msg || ""; }
+    function ms(v) { return v < 1000 ? Math.round(v) + " мс" : (v / 1000).toFixed(1) + " с"; }
+
+    function history() { try { return JSON.parse(localStorage.getItem("hist") || "[]"); } catch (e) { return []; } }
+    function pushHistory(q) {
+        try { localStorage.setItem("hist", JSON.stringify([q, ...history().filter(x => x !== q)].slice(0, 6))); } catch (e) {}
+        renderHistory();
+    }
+    function renderHistory() {
+        const box = $("#hist"); box.innerHTML = "";
+        history().forEach(q => {
+            const b = document.createElement("button"); b.type = "button"; b.className = "chip"; b.textContent = q;
+            b.onclick = () => { $("#q").value = q; search(q); }; box.appendChild(b);
+        });
+    }
+
+    function connect() {
+        ws = new WebSocket((location.protocol === "https:" ? "wss://" : "ws://") + location.host + "/ws/search");
+        ws.onopen = () => pill("#pWs", true);
+        ws.onmessage = e => { try { onMessage(JSON.parse(e.data)); } catch (err) { fail("Некоректна відповідь сервера"); } };
+        ws.onclose = () => { pill("#pWs", false); if (running) fail("З’єднання розірвано"); setTimeout(connect, 2000); };
+        ws.onerror = () => {};
+    }
+    function search(raw) {
+        const q = raw.trim();
+        if (running) return;
+        const terms = [...new Set(q.toLowerCase().match(/[a-z]+/g) || [])];
+        if (!terms.length) { note("Індексуються лише слова з латинських літер"); return; }
+        if (!ws || ws.readyState !== 1) { note("Немає з’єднання з сервером, спробуйте за мить."); return; }
+        note(""); resetSteps(); ctx = {terms, syn: []};
+        $("#results").innerHTML = '<div class="empty">Виконується пошук…</div>';
+        running = true; $("#go").disabled = true; t0 = performance.now();
+        setStep("expansion", "run", "очікуємо LLM…");
+        watchdog = setTimeout(() => fail("Сервер не відповів вчасно"), 120000);
+        ws.send(JSON.stringify({query: q})); pushHistory(q);
+    }
+    function finish() { running = false; clearTimeout(watchdog); $("#go").disabled = false; }
+    function fail(msg) {
+        if (!running) return;
+        const cur = STEPS.find(s => $("#s-" + s).classList.contains("run")) || "done";
+        setStep(cur, "err", msg); note(msg); finish();
+    }
+    function onMessage(m) {
+        const d = m.data || {}, elapsed = performance.now() - t0;
+        if (m.stage === "query_expansion") {
+            ctx.syn = (d.expanded_terms || []).filter(t => !ctx.terms.includes(t));
+            renderChips();
+            setStep("expansion", "done", ms(elapsed) + " · +" + ctx.syn.length + " синонімів");
+            setStep("search", "run", "шукаємо в індексі…");
+        } else if (m.stage === "keyword_search") {
+            renderResults(d.results || [], d.time_ms);
+            setStep("search", "done", "сервер: " + d.time_ms + " мс · " + (d.results || []).length + " док.");
+            setStep("done", "run", "");
+        } else if (m.stage === "done") {
+            setStep("done", "done", "разом " + ms(elapsed)); finish();
+        } else if (m.stage === "error") {
+            fail(d.message || "Помилка сервера");
+        }
+    }
+
+    function renderChips() {
+        const box = $("#chips"); box.innerHTML = "";
+        ctx.terms.forEach(t => box.insertAdjacentHTML("beforeend", '<span class="chip orig">' + esc(t) + "</span>"));
+        ctx.syn.forEach(t => box.insertAdjacentHTML("beforeend", '<span class="chip syn">' + esc(t) + "</span>"));
+        if (!ctx.syn.length) box.insertAdjacentHTML("beforeend", '<span class="msg">синонімів немає (Ollama недоступна або нічого не повернула)</span>');
+        $("#exp").classList.add("on");
+    }
+    function highlight(raw) {
+        const all = [...ctx.terms, ...ctx.syn].sort((a, b) => b.length - a.length);
+        if (!all.length) return esc(raw);
+        const re = new RegExp("\\b(" + all.join("|") + ")\\b", "gi");
+        let out = "", last = 0;
+        for (const m of raw.matchAll(re)) {
+            const cls = ctx.terms.includes(m[0].toLowerCase()) ? "orig" : "syn";
+            out += esc(raw.slice(last, m.index)) + '<mark class="' + cls + '">' + esc(m[0]) + "</mark>";
+            last = m.index + m[0].length;
+        }
+        return out + esc(raw.slice(last));
+    }
+    function renderResults(list, time) {
+        const box = $("#results");
+        if (!list.length) { box.innerHTML = '<div class="empty">Нічого не знайдено. Перевірте, чи побудовано індекс.</div>'; return; }
+        const max = Math.max(...list.map(r => r.score)) || 1;
+        box.innerHTML = '<div class="meta"><span>Знайдено: ' + list.length + '</span><span>час пошуку: ' + time + " мс</span></div>" +
+            list.map((r, i) => '<div class="res"><div class="top"><span class="rank">' + (i + 1) + '</span><span class="doc">' + esc(r.doc_id) +
+                '</span><span class="score">' + Number(r.score).toFixed(1) + '</span></div><div class="bar"><i style="width:' + (r.score / max * 100) +
+                '%"></i></div><div class="snip">' + highlight(r.snippet || "") + "</div></div>").join("");
+    }
+
+    async function loadStats() {
+        try {
+            const s = await (await fetch("/api/stats")).json();
+            $("#stDocs").textContent = s.documents; $("#stTime").textContent = s.documents ? ms(s.index_build_time_ms) : "—";
+            $("#stThr").textContent = s.threads_used || "—";
+        } catch (e) {}
+    }
+    async function loadHealth() {
+        try { const h = await (await fetch("/api/health")).json(); pill("#pSrv", h.status === "ok"); pill("#pOll", h.ollama === true); }
+        catch (e) { pill("#pSrv", false); pill("#pOll", false); }
+    }
+    async function build() {
+        const threads = parseInt($("#thr").value, 10), msg = $("#bmsg");
+        msg.className = "msg"; msg.textContent = "Індексація…"; $("#build").disabled = true;
+        try {
+            const r = await fetch("/api/index", {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify({threads})});
+            const j = await r.json();
+            if (r.ok) { msg.className = "msg ok"; msg.textContent = "Готово: " + j.documents_indexed + " док. за " + ms(j.time_ms); }
+            else { msg.className = "msg err"; msg.textContent = (r.status === 409 ? "Індексація вже триває. " : "") + (j.message || "Помилка"); }
+        } catch (e) { msg.className = "msg err"; msg.textContent = "Не вдалося звернутися до сервера"; }
+        $("#build").disabled = false; loadStats();
+    }
+
+    $("#form").addEventListener("submit", e => { e.preventDefault(); search($("#q").value); });
+    $("#build").addEventListener("click", build);
+    document.addEventListener("keydown", e => { if (e.key === "/" && document.activeElement !== $("#q")) { e.preventDefault(); $("#q").focus(); } });
+    renderHistory(); connect(); loadStats(); loadHealth(); setInterval(loadHealth, 10000);
+</script>
+</body>
+</html>
