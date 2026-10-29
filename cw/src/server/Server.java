@@ -1,5 +1,6 @@
 package server;
 
+import io.javalin.http.staticfiles.Location;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import core.Indexing;
 import core.Tokenizer;
@@ -24,7 +25,7 @@ public class Server {
     private final Javalin server;
     private final OllamaCli ollamaCli;
     private final OllamaWorker ollamaWorker;
-    private final Indexing indexTable;
+    private Indexing indexTable;
 
     public Server() {
         Map<String, String> env = System.getenv();
@@ -33,7 +34,9 @@ public class Server {
         String ollamaUrl = env.getOrDefault("OLLAMA_URL", "http://localhost:11434");
         String ollamaModel = env.getOrDefault("OLLAMA_MODEL", "llama3.2:1b");
 
-        this.server = Javalin.create();
+        this.server = Javalin.create(config ->
+                config.staticFiles.add("/public", Location.CLASSPATH)
+        );
         this.ollamaCli = new OllamaCli(ollamaUrl, ollamaModel);
         this.ollamaWorker = new OllamaWorker(ollamaCli);
         this.indexTable = new Indexing(100_000, ollamaWorker);
@@ -90,8 +93,14 @@ public class Server {
                         }
                     }
 
+                    if (threads < 1 || threads > 256)
+                    {
+                        throw new IllegalArgumentException("threads must be between 1 and 256");
+                    }
+
                     try (Stream<Path> walk = Files.walk(dataDir)) {
                         List<Path> files = walk.filter(Files::isRegularFile).toList();
+                        this.indexTable = new Indexing(100_000, ollamaWorker);
                         ctx.status(200).json(indexTable.buildIndex(files, threads));
                     }
                 });
