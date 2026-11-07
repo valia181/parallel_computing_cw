@@ -24,6 +24,8 @@ The backend is written in Java 17 (Javalin 6, Jackson). The index is built by a 
 
 Only Docker and Docker Compose are required.
 
+> **Dataset first.** The repository does not ship a dataset. Before building the index, put text files into `./data`: either **generate** a dataset with `generate_dataset.py` or **add your own** files. Both options are described in [section 3 (Dataset)](#3-dataset). After adding or changing files in `./data`, run `docker compose restart search-server` and rebuild the index.
+
 ```bash
 git clone https://github.com/valia181/parallel_computing_cw.git
 cd parallel_computing_cw/cw
@@ -45,6 +47,13 @@ curl http://localhost:8080/api/health
 ```
 
 While Ollama is still pulling the model, `"ollama"` is `false`. The server keeps working, and `ollama` mode simply adds no synonyms (see [section 4](#post-apisearch)).
+
+Prepare the dataset (skip this if `./data` already contains your files; details in [section 3](#3-dataset)):
+
+```bash
+python generate_dataset.py                 # generates 10,000 files into ./data
+docker compose restart search-server       # let the server pick up the new data
+```
 
 Build the index and run the first search:
 
@@ -146,7 +155,16 @@ python generate_dataset.py --out data --count 10000 --workers 8
 
 Options: `--out`, `--count`, `--min-kb`, `--max-kb`, `--workers`, `--seed`, `--wordlist`, `--vocab`. The text is synthetic: words follow a Zipf distribution and documents have topical word groups, but there is no grammatical meaning.
 
-Any other set of English text files (for example the Stanford dataset from the literature list) can be used instead by placing it in `data/`.
+**Adding your own dataset.** Any other set of English `.txt` files (for example the Stanford dataset from the literature list) can be used instead of the generated one: put the files into `data/` (subdirectories are fine, they are scanned recursively).
+
+**Applying the dataset (required after any change in `./data`).** Whether you generated the dataset or added your own files, restart the search server and rebuild the index:
+
+```bash
+docker compose restart search-server
+curl -X POST http://localhost:8080/api/index -H "Content-Type: application/json" -d '{"threads": 4}'
+```
+
+The index lives in RAM only, so it is empty after every restart and must be rebuilt with `POST /api/index` (or with the build button in the Web UI). Check the result with `GET /api/stats`: the `documents` field should match the number of files in `data/`.
 
 **Memory.** The index is kept in RAM. `docker-compose.yml` sets `JAVA_TOOL_OPTIONS: -Xmx4g` for the container. For a large dataset with diverse vocabulary this may not be enough (`OutOfMemoryError`); increase the value in that case.
 
